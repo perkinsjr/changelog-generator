@@ -6,13 +6,7 @@ import { useFingerprint } from "@/hooks/use-fingerprint";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { GitBranch, Calendar, AlertCircle, Info } from "lucide-react";
@@ -23,11 +17,7 @@ interface ChangelogFormProps {
   setIsGenerating: (value: boolean) => void;
 }
 
-export function ChangelogForm({
-  onGenerate,
-  isGenerating,
-  setIsGenerating,
-}: ChangelogFormProps) {
+export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: ChangelogFormProps) {
   const [repository, setRepository] = useState("");
   const [dateMode, setDateMode] = useState<"days" | "range">("days");
   const [days, setDays] = useState("30");
@@ -35,6 +25,24 @@ export function ChangelogForm({
   const [endDate, setEndDate] = useState("");
   const [error, setError] = useState<string | null>(null);
   const { fingerprint, isLoading: fingerprintLoading } = useFingerprint();
+
+  // Form validation
+  const isFormValid = () => {
+    if (!repository.trim()) return false;
+    if (!fingerprint || fingerprintLoading) return false;
+
+    if (dateMode === "days") {
+      const dayValue = Number.parseInt(days);
+      return dayValue >= 1 && dayValue <= 365;
+    }
+
+    if (dateMode === "range") {
+      if (!startDate || !endDate) return false;
+      return new Date(endDate) >= new Date(startDate);
+    }
+
+    return false;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,8 +91,7 @@ export function ChangelogForm({
       }
     } catch (error) {
       console.error("Error generating changelog:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "An error occurred";
+      const errorMessage = error instanceof Error ? error.message : "An error occurred";
       setError(errorMessage);
       onGenerate("");
     } finally {
@@ -100,8 +107,7 @@ export function ChangelogForm({
           Repository Configuration
         </CardTitle>
         <CardDescription>
-          Enter the GitHub repository and select a time frame for changelog
-          generation
+          Enter the GitHub repository and select a time frame for changelog generation
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -117,8 +123,7 @@ export function ChangelogForm({
           <Info className="h-4 w-4" />
           <AlertTitle>Rate Limiting</AlertTitle>
           <AlertDescription>
-            This service is rate limited to 5 requests per minute per user to
-            ensure fair usage.
+            This service is rate limited to 5 requests per minute per user to ensure fair usage.
           </AlertDescription>
         </Alert>
 
@@ -162,9 +167,7 @@ export function ChangelogForm({
                   required={dateMode === "days"}
                   disabled={isGenerating}
                 />
-                <p className="text-sm text-muted-foreground">
-                  Number of days to look back (1-365)
-                </p>
+                <p className="text-sm text-muted-foreground">Number of days to look back (1-365)</p>
               </TabsContent>
               <TabsContent value="range" className="space-y-4">
                 <div className="space-y-2">
@@ -187,6 +190,7 @@ export function ChangelogForm({
                     onChange={(e) => setEndDate(e.target.value)}
                     required={dateMode === "range"}
                     disabled={isGenerating}
+                    min={startDate}
                   />
                 </div>
               </TabsContent>
@@ -196,7 +200,7 @@ export function ChangelogForm({
           <Button
             type="submit"
             className="w-full"
-            disabled={isGenerating || fingerprintLoading}
+            disabled={isGenerating || fingerprintLoading || !isFormValid()}
           >
             {isGenerating
               ? "Generating..."

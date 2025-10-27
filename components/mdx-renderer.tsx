@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
-import { CodeBlock } from "./code-block"
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { CodeBlock } from "./code-block";
 
 interface MDXRendererProps {
-  content: string
+  content: string;
 }
 
 export function MDXRenderer({ content }: MDXRendererProps) {
@@ -14,16 +14,27 @@ export function MDXRenderer({ content }: MDXRendererProps) {
       remarkPlugins={[remarkGfm]}
       components={{
         h1: ({ children }) => (
-          <h1 className="mb-4 mt-8 text-4xl font-bold tracking-tight text-balance first:mt-0">{children}</h1>
+          <h1 className="mb-4 mt-8 text-4xl font-bold tracking-tight text-balance first:mt-0">
+            {children}
+          </h1>
         ),
-        h2: ({ children }) => <h2 className="mb-3 mt-8 text-3xl font-bold tracking-tight text-balance">{children}</h2>,
-        h3: ({ children }) => <h3 className="mb-3 mt-6 text-2xl font-semibold tracking-tight">{children}</h3>,
+        h2: ({ children }) => (
+          <h2 className="mb-3 mt-8 text-3xl font-bold tracking-tight text-balance">{children}</h2>
+        ),
+        h3: ({ children }) => (
+          <h3 className="mb-3 mt-6 text-2xl font-semibold tracking-tight">{children}</h3>
+        ),
         h4: ({ children }) => <h4 className="mb-2 mt-4 text-xl font-semibold">{children}</h4>,
         h5: ({ children }) => <h5 className="mb-2 mt-4 text-lg font-semibold">{children}</h5>,
         h6: ({ children }) => <h6 className="mb-2 mt-4 text-base font-semibold">{children}</h6>,
         p: ({ children }) => <p className="mb-4 leading-relaxed">{children}</p>,
         a: ({ href, children }) => (
-          <a href={href} className="text-accent hover:underline font-medium" target="_blank" rel="noopener noreferrer">
+          <a
+            href={href}
+            className="text-accent hover:underline font-medium"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             {children}
           </a>
         ),
@@ -36,13 +47,13 @@ export function MDXRenderer({ content }: MDXRendererProps) {
           </blockquote>
         ),
         code: ({ inline, className, children, ...props }: any) => {
-          const match = /language-(\w+)/.exec(className || "")
-          const language = match ? match[1] : undefined
+          const match = /language-(\w+)/.exec(className || "");
+          const language = match ? match[1] : undefined;
           return (
             <CodeBlock inline={inline} language={language}>
               {String(children).replace(/\n$/, "")}
             </CodeBlock>
-          )
+          );
         },
         pre: ({ children }) => <>{children}</>, // Simplified pre tag to avoid double wrapping
         hr: () => <hr className="my-8 border-border" />,
@@ -62,5 +73,5 @@ export function MDXRenderer({ content }: MDXRendererProps) {
     >
       {content}
     </ReactMarkdown>
-  )
+  );
 }

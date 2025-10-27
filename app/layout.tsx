@@ -39,12 +39,7 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" sizes="32x32" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link
-          rel="icon"
-          href="/favicon-96x96.png"
-          sizes="96x96"
-          type="image/png"
-        />
+        <link rel="icon" href="/favicon-96x96.png" sizes="96x96" type="image/png" />
       </head>
       <body className={`font-sans antialiased`}>{children}</body>
     </html>

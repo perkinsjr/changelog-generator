@@ -12,10 +12,7 @@ interface ChangelogDisplayProps {
   isGenerating: boolean;
 }
 
-export function ChangelogDisplay({
-  changelog,
-  isGenerating,
-}: ChangelogDisplayProps) {
+export function ChangelogDisplay({ changelog, isGenerating }: ChangelogDisplayProps) {
   const [isCopied, setIsCopied] = useState(false);
   const [isDownloaded, setIsDownloaded] = useState(false);
 
@@ -50,11 +47,7 @@ export function ChangelogDisplay({
           {changelog && !isGenerating && (
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={handleCopy}>
-                {isCopied ? (
-                  <Check className="mr-2 h-4 w-4" />
-                ) : (
-                  <Copy className="mr-2 h-4 w-4" />
-                )}
+                {isCopied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
                 {isCopied ? "Copied!" : "Copy"}
               </Button>
               <Button variant="outline" size="sm" onClick={handleDownload}>
