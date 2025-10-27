@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -20,10 +20,8 @@ interface ChangelogFormProps {
 
 export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: ChangelogFormProps) {
   const [repository, setRepository] = useState("");
-  const [dateRange, setDateRange] = useState<{
-    startDate: string;
-    endDate: string;
-  } | null>(null);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [error, setError] = useState<string | null>(null);
   const { fingerprint, isLoading: fingerprintLoading } = useFingerprint();
 
@@ -36,10 +34,10 @@ export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: Cha
       return false;
     }
 
-    if (!dateRange || !dateRange.startDate || !dateRange.endDate) {
+    if (!startDate || !endDate) {
       return false;
     }
-    return new Date(dateRange.endDate) >= new Date(dateRange.startDate);
+    return new Date(endDate) >= new Date(startDate);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,8 +58,8 @@ export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: Cha
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           repository,
-          startDate: dateRange?.startDate,
-          endDate: dateRange?.endDate,
+          startDate,
+          endDate,
           identifier: fingerprint,
         }),
       });
@@ -146,19 +144,32 @@ export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: Cha
               <Calendar className="h-4 w-4" />
               Date Range
             </Label>
-            <DateRangePicker onDateChange={setDateRange} disabled={isGenerating} />
-            <p className="text-sm text-muted-foreground">
-              Select a date range for the changelog. The calendar will automatically prevent invalid
-              date ranges and swap dates if needed.
-            </p>
-            {dateRange && (
-              <div className="mt-2 p-2 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md">
-                <p className="text-sm text-green-700 dark:text-green-300">
-                  ✅ Date range selected: {new Date(dateRange.startDate).toLocaleDateString()} to{" "}
-                  {new Date(dateRange.endDate).toLocaleDateString()}
-                </p>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Start Date</Label>
+                <DatePicker
+                  value={startDate}
+                  onChange={setStartDate}
+                  placeholder="Select start date"
+                  disabled={isGenerating}
+                  maxDate={endDate ? new Date(endDate) : new Date()}
+                />
               </div>
-            )}
+              <div className="space-y-2">
+                <Label htmlFor="endDate">End Date</Label>
+                <DatePicker
+                  value={endDate}
+                  onChange={setEndDate}
+                  placeholder="Select end date"
+                  disabled={isGenerating}
+                  minDate={startDate ? new Date(startDate) : undefined}
+                  maxDate={new Date()}
+                />
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Select a date range for the changelog. End date cannot be before start date.
+            </p>
           </div>
 
           <Button
@@ -170,7 +181,7 @@ export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: Cha
               ? "Generating..."
               : fingerprintLoading
                 ? "Loading..."
-                : !dateRange
+                : !startDate || !endDate
                   ? "Select dates to continue"
                   : "Generate Changelog"}
           </Button>
