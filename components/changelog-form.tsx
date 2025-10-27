@@ -2,13 +2,14 @@
 
 import { AlertCircle, Calendar, GitBranch, Info } from "lucide-react";
 import type React from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { useFingerprint } from "@/hooks/use-fingerprint";
 
 interface ChangelogFormProps {
@@ -19,12 +20,15 @@ interface ChangelogFormProps {
 
 export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: ChangelogFormProps) {
   const [repository, setRepository] = useState("");
-  const [dateMode, setDateMode] = useState<"days" | "range">("days");
-  const [days, setDays] = useState("30");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [error, setError] = useState<string | null>(null);
   const { fingerprint, isLoading: fingerprintLoading } = useFingerprint();
+
+  // Memoize date objects to prevent infinite re-renders
+  const startDateMax = useMemo(() => (endDate ? new Date(endDate) : new Date()), [endDate]);
+  const endDateMin = useMemo(() => (startDate ? new Date(startDate) : undefined), [startDate]);
+  const endDateMax = useMemo(() => new Date(), []);
 
   // Form validation
   const isFormValid = () => {
@@ -35,26 +39,20 @@ export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: Cha
       return false;
     }
 
-    if (dateMode === "days") {
-      const dayValue = Number.parseInt(days);
-      return dayValue >= 1 && dayValue <= 365;
+    if (!startDate || !endDate) {
+      return false;
     }
-
-    if (dateMode === "range") {
-      if (!startDate || !endDate) {
-        return false;
-      }
-      return new Date(endDate) >= new Date(startDate);
-    }
-
-    return false;
+    return new Date(endDate) >= new Date(startDate);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsGenerating(true);
     setError(null);
+
+    // Clear content with a small delay to prevent race conditions
     onGenerate("");
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     if (!fingerprint) {
       setError("Fingerprint not available. Please try again.");
@@ -63,15 +61,23 @@ export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: Cha
     }
 
     try {
+      // Debug logging
+      console.log("Submitting form with:", {
+        repository,
+        dateMode: "range",
+        startDate,
+        endDate,
+        identifier: fingerprint,
+      });
+
       const response = await fetch("/api/generate-changelog", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           repository,
-          dateMode,
-          days: dateMode === "days" ? Number.parseInt(days) : undefined,
-          startDate: dateMode === "range" ? startDate : undefined,
-          endDate: dateMode === "range" ? endDate : undefined,
+          dateMode: "range",
+          startDate,
+          endDate,
           identifier: fingerprint,
         }),
       });
@@ -94,7 +100,11 @@ export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: Cha
 
           const chunk = decoder.decode(value, { stream: true });
           accumulatedText += chunk;
-          onGenerate(accumulatedText);
+
+          // Ensure we have meaningful content before updating
+          if (accumulatedText.trim()) {
+            onGenerate(accumulatedText);
+          }
         }
       }
     } catch (error) {
@@ -154,55 +164,34 @@ export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: Cha
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
-              Time Frame
+              Date Range
             </Label>
-            <Tabs
-              value={dateMode}
-              onValueChange={(v: string) => setDateMode(v as "days" | "range")}
-            >
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="days">Last N Days</TabsTrigger>
-                <TabsTrigger value="range">Date Range</TabsTrigger>
-              </TabsList>
-              <TabsContent value="days" className="space-y-2">
-                <Input
-                  type="number"
-                  placeholder="30"
-                  value={days}
-                  onChange={(e) => setDays(e.target.value)}
-                  min="1"
-                  max="365"
-                  required={dateMode === "days"}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Start Date</Label>
+                <DatePicker
+                  value={startDate}
+                  onChange={setStartDate}
+                  placeholder="Select start date"
                   disabled={isGenerating}
+                  maxDate={startDateMax}
                 />
-                <p className="text-sm text-muted-foreground">Number of days to look back (1-365)</p>
-              </TabsContent>
-              <TabsContent value="range" className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="startDate">Start Date</Label>
-                  <Input
-                    id="startDate"
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    required={dateMode === "range"}
-                    disabled={isGenerating}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="endDate">End Date</Label>
-                  <Input
-                    id="endDate"
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    required={dateMode === "range"}
-                    disabled={isGenerating}
-                    min={startDate}
-                  />
-                </div>
-              </TabsContent>
-            </Tabs>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="endDate">End Date</Label>
+                <DatePicker
+                  value={endDate}
+                  onChange={setEndDate}
+                  placeholder="Select end date"
+                  disabled={isGenerating}
+                  minDate={endDateMin}
+                  maxDate={endDateMax}
+                />
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Select a date range for the changelog. End date cannot be before start date.
+            </p>
           </div>
 
           <Button
@@ -214,7 +203,9 @@ export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: Cha
               ? "Generating..."
               : fingerprintLoading
                 ? "Loading..."
-                : "Generate Changelog"}
+                : !startDate || !endDate
+                  ? "Select dates to continue"
+                  : "Generate Changelog"}
           </Button>
         </form>
       </CardContent>

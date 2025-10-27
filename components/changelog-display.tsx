@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, CheckCircle, Copy, Download, FileText } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { MDXRenderer } from "@/components/mdx-renderer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +15,13 @@ interface ChangelogDisplayProps {
 export function ChangelogDisplay({ changelog, isGenerating }: ChangelogDisplayProps) {
   const [isCopied, setIsCopied] = useState(false);
   const [isDownloaded, setIsDownloaded] = useState(false);
+
+  // Generate a key based on content length to force re-render when content changes significantly
+  const contentKey = useMemo(() => {
+    return changelog
+      ? `mdx-${changelog.length}-${changelog.slice(0, 50).replace(/\s/g, "")}`
+      : "empty";
+  }, [changelog]);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(changelog);
@@ -75,7 +82,7 @@ export function ChangelogDisplay({ changelog, isGenerating }: ChangelogDisplayPr
         )}
         {changelog && (
           <div className="prose prose-sm dark:prose-invert max-w-none">
-            <MDXRenderer content={changelog} />
+            <MDXRenderer key={contentKey} content={changelog} />
             {isGenerating && (
               <div className="mt-4 flex items-center gap-2 text-muted-foreground">
                 <Spinner className="h-4 w-4" />

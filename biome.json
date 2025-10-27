@@ -5,7 +5,14 @@
   },
   "linter": {
     "enabled": true,
-    "includes": ["**/*", "!node_modules/**", "!.next/**", "!next-env.d.ts"],
+    "includes": [
+      "**/*",
+      "!node_modules/**",
+      "!.next/**",
+      "!next-env.d.ts",
+      "!pnpm-lock.yaml",
+      "!pnpm."
+    ],
     "rules": {
       "recommended": true,
       "a11y": {
@@ -47,7 +54,14 @@
     "indentWidth": 2,
     "enabled": true,
     "lineWidth": 100,
-    "includes": ["**/*", "!node_modules/**", "!.next/**", "!next-env.d.ts"]
+    "includes": [
+      "**/*",
+      "!node_modules/**",
+      "!.next/**",
+      "!next-env.d.ts",
+      "!pnpm-lock.yaml",
+      "!pnpm."
+    ]
   },
   "css": {
     "parser": {

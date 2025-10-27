@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CodeBlock } from "./code-block";
@@ -8,9 +9,15 @@ interface MDXRendererProps {
   content: string;
 }
 
-export function MDXRenderer({ content }: MDXRendererProps) {
+function MDXRendererComponent({ content }: MDXRendererProps) {
+  // Don't render if content is empty or just whitespace
+  if (!content || !content.trim()) {
+    return null;
+  }
+
   return (
     <ReactMarkdown
+      key={content.length} // Force re-render when content changes
       remarkPlugins={[remarkGfm]}
       components={{
         h1: ({ children }) => (
@@ -75,3 +82,11 @@ export function MDXRenderer({ content }: MDXRendererProps) {
     </ReactMarkdown>
   );
 }
+
+// Memoize the component to prevent unnecessary re-renders
+export const MDXRenderer = memo(MDXRendererComponent, (prevProps, nextProps) => {
+  // Only re-render if content actually changed
+  return prevProps.content === nextProps.content;
+});
+
+MDXRenderer.displayName = "MDXRenderer";
