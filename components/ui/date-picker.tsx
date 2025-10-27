@@ -5,11 +5,7 @@ import { CalendarIcon } from "lucide-react";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 interface DatePickerProps {
@@ -35,6 +31,12 @@ export function DatePicker({
     value ? new Date(value + "T00:00:00") : undefined,
   );
 
+  // Sync internal state with prop changes
+  React.useEffect(() => {
+    const newDate = value ? new Date(value + "T00:00:00") : undefined;
+    setDate(newDate);
+  }, [value]);
+
   const handleDateChange = (selectedDate: Date | undefined) => {
     setDate(selectedDate);
     if (selectedDate && !isNaN(selectedDate.getTime())) {
@@ -57,7 +59,7 @@ export function DatePicker({
           <Button
             variant="outline"
             className={cn(
-              "w-full justify-start text-left font-normal h-10",
+              "w-full justify-start text-left font-normal h-10 border-input hover:bg-muted hover:text-foreground focus-visible:ring-foreground/20 focus-visible:ring-2 focus-visible:ring-offset-0",
               !date && "text-muted-foreground",
             )}
             disabled={disabled}

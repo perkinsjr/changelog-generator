@@ -2,16 +2,10 @@
 
 import { AlertCircle, Calendar, GitBranch, Info } from "lucide-react";
 import type React from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,16 +18,17 @@ interface ChangelogFormProps {
   setIsGenerating: (value: boolean) => void;
 }
 
-export function ChangelogForm({
-  onGenerate,
-  isGenerating,
-  setIsGenerating,
-}: ChangelogFormProps) {
+export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: ChangelogFormProps) {
   const [repository, setRepository] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [error, setError] = useState<string | null>(null);
   const { fingerprint, isLoading: fingerprintLoading } = useFingerprint();
+
+  // Memoize date objects to prevent infinite re-renders
+  const startDateMax = useMemo(() => (endDate ? new Date(endDate) : new Date()), [endDate]);
+  const endDateMin = useMemo(() => (startDate ? new Date(startDate) : undefined), [startDate]);
+  const endDateMax = useMemo(() => new Date(), []);
 
   // Form validation
   const isFormValid = () => {
@@ -54,7 +49,10 @@ export function ChangelogForm({
     e.preventDefault();
     setIsGenerating(true);
     setError(null);
+
+    // Clear content with a small delay to prevent race conditions
     onGenerate("");
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     if (!fingerprint) {
       setError("Fingerprint not available. Please try again.");
@@ -102,13 +100,16 @@ export function ChangelogForm({
 
           const chunk = decoder.decode(value, { stream: true });
           accumulatedText += chunk;
-          onGenerate(accumulatedText);
+
+          // Ensure we have meaningful content before updating
+          if (accumulatedText.trim()) {
+            onGenerate(accumulatedText);
+          }
         }
       }
     } catch (error) {
       console.error("Error generating changelog:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "An error occurred";
+      const errorMessage = error instanceof Error ? error.message : "An error occurred";
       setError(errorMessage);
       onGenerate("");
     } finally {
@@ -124,8 +125,7 @@ export function ChangelogForm({
           Repository Configuration
         </CardTitle>
         <CardDescription>
-          Enter the GitHub repository and select a time frame for changelog
-          generation
+          Enter the GitHub repository and select a time frame for changelog generation
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -141,8 +141,7 @@ export function ChangelogForm({
           <Info className="h-4 w-4" />
           <AlertTitle>Rate Limiting</AlertTitle>
           <AlertDescription>
-            This service is rate limited to 5 requests per minute per user to
-            ensure fair usage.
+            This service is rate limited to 5 requests per minute per user to ensure fair usage.
           </AlertDescription>
         </Alert>
 
@@ -167,7 +166,7 @@ export function ChangelogForm({
               <Calendar className="h-4 w-4" />
               Date Range
             </Label>
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="startDate">Start Date</Label>
                 <DatePicker
@@ -175,7 +174,7 @@ export function ChangelogForm({
                   onChange={setStartDate}
                   placeholder="Select start date"
                   disabled={isGenerating}
-                  maxDate={endDate ? new Date(endDate) : new Date()}
+                  maxDate={startDateMax}
                 />
               </div>
               <div className="space-y-2">
@@ -185,14 +184,13 @@ export function ChangelogForm({
                   onChange={setEndDate}
                   placeholder="Select end date"
                   disabled={isGenerating}
-                  minDate={startDate ? new Date(startDate) : undefined}
-                  maxDate={new Date()}
+                  minDate={endDateMin}
+                  maxDate={endDateMax}
                 />
               </div>
             </div>
             <p className="text-sm text-muted-foreground">
-              Select a date range for the changelog. End date cannot be before
-              start date.
+              Select a date range for the changelog. End date cannot be before start date.
             </p>
           </div>
 
