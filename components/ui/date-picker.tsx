@@ -5,7 +5,11 @@ import { CalendarIcon } from "lucide-react";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 interface DatePickerProps {
@@ -27,12 +31,19 @@ export function DatePicker({
   maxDate,
   className,
 }: DatePickerProps) {
-  const [date, setDate] = React.useState<Date | undefined>(value ? new Date(value) : undefined);
+  const [date, setDate] = React.useState<Date | undefined>(
+    value ? new Date(value + "T00:00:00") : undefined,
+  );
 
   const handleDateChange = (selectedDate: Date | undefined) => {
     setDate(selectedDate);
-    if (selectedDate) {
-      const dateString = format(selectedDate, "yyyy-MM-dd");
+    if (selectedDate && !isNaN(selectedDate.getTime())) {
+      // Ensure we get the date in local timezone as YYYY-MM-DD
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+      const day = String(selectedDate.getDate()).padStart(2, "0");
+      const dateString = `${year}-${month}-${day}`;
+      console.log("DatePicker: Setting date", dateString);
       onChange?.(dateString);
     } else {
       onChange?.("");
@@ -52,7 +63,7 @@ export function DatePicker({
             disabled={disabled}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {date ? format(date, "PPP") : placeholder}
+            {date && !isNaN(date.getTime()) ? format(date, "PPP") : placeholder}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
@@ -61,9 +72,13 @@ export function DatePicker({
             selected={date}
             onSelect={handleDateChange}
             disabled={(date) => {
+              // Use local date comparison to avoid timezone issues
+              const today = new Date();
+              today.setHours(23, 59, 59, 999); // End of today
+
               if (minDate && date < minDate) return true;
               if (maxDate && date > maxDate) return true;
-              return date > new Date() || date < new Date("1900-01-01");
+              return date > today || date < new Date("1900-01-01");
             }}
             initialFocus
           />

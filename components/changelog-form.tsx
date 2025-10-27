@@ -5,7 +5,13 @@ import type React from "react";
 import { useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +24,11 @@ interface ChangelogFormProps {
   setIsGenerating: (value: boolean) => void;
 }
 
-export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: ChangelogFormProps) {
+export function ChangelogForm({
+  onGenerate,
+  isGenerating,
+  setIsGenerating,
+}: ChangelogFormProps) {
   const [repository, setRepository] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -53,11 +63,21 @@ export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: Cha
     }
 
     try {
+      // Debug logging
+      console.log("Submitting form with:", {
+        repository,
+        dateMode: "range",
+        startDate,
+        endDate,
+        identifier: fingerprint,
+      });
+
       const response = await fetch("/api/generate-changelog", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           repository,
+          dateMode: "range",
           startDate,
           endDate,
           identifier: fingerprint,
@@ -87,7 +107,8 @@ export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: Cha
       }
     } catch (error) {
       console.error("Error generating changelog:", error);
-      const errorMessage = error instanceof Error ? error.message : "An error occurred";
+      const errorMessage =
+        error instanceof Error ? error.message : "An error occurred";
       setError(errorMessage);
       onGenerate("");
     } finally {
@@ -103,7 +124,8 @@ export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: Cha
           Repository Configuration
         </CardTitle>
         <CardDescription>
-          Enter the GitHub repository and select a time frame for changelog generation
+          Enter the GitHub repository and select a time frame for changelog
+          generation
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -119,7 +141,8 @@ export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: Cha
           <Info className="h-4 w-4" />
           <AlertTitle>Rate Limiting</AlertTitle>
           <AlertDescription>
-            This service is rate limited to 5 requests per minute per user to ensure fair usage.
+            This service is rate limited to 5 requests per minute per user to
+            ensure fair usage.
           </AlertDescription>
         </Alert>
 
@@ -168,7 +191,8 @@ export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: Cha
               </div>
             </div>
             <p className="text-sm text-muted-foreground">
-              Select a date range for the changelog. End date cannot be before start date.
+              Select a date range for the changelog. End date cannot be before
+              start date.
             </p>
           </div>
 

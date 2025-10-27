@@ -17,10 +17,23 @@ const unkey = new Ratelimit({
 
 export async function POST(req: Request) {
   try {
-    const { repository, dateMode, days, startDate, endDate, identifier } = await req.json();
+    const { repository, dateMode, days, startDate, endDate, identifier } =
+      await req.json();
+
+    console.log("API: Received request data:", {
+      repository,
+      dateMode,
+      days,
+      startDate,
+      endDate,
+      identifier: identifier ? "present" : "missing",
+    });
 
     if (!repository) {
-      return Response.json({ error: "Repository is required" }, { status: 400 });
+      return Response.json(
+        { error: "Repository is required" },
+        { status: 400 },
+      );
     }
 
     if (!repository.includes("/") || repository.split("/").length !== 2) {
@@ -31,7 +44,10 @@ export async function POST(req: Request) {
     }
 
     if (!identifier) {
-      return Response.json({ error: "Fingerprint identifier is required" }, { status: 400 });
+      return Response.json(
+        { error: "Fingerprint identifier is required" },
+        { status: 400 },
+      );
     }
     const ratelimit = await unkey.limit(identifier);
     if (!ratelimit.success) {
@@ -39,7 +55,22 @@ export async function POST(req: Request) {
     }
 
     // Calculate date range
-    const { start, end } = calculateDateRange(dateMode, days, startDate, endDate);
+    console.log("API: Calculating date range with:", {
+      dateMode,
+      days,
+      startDate,
+      endDate,
+    });
+    const { start, end } = calculateDateRange(
+      dateMode,
+      days,
+      startDate,
+      endDate,
+    );
+    console.log("API: Calculated date range:", {
+      start: start.toISOString(),
+      end: end.toISOString(),
+    });
 
     console.log(
       `Fetching PRs for ${repository} from ${start.toISOString()} to ${end.toISOString()}`,
@@ -165,8 +196,11 @@ Output ONLY the MDX content.`;
           controller.close();
         } catch (error) {
           console.error("[v0] Error in stream:", error);
-          const errorMessage = error instanceof Error ? error.message : "Stream error occurred";
-          controller.enqueue(encoder.encode(`\n\n---\n\n**Error:** ${errorMessage}`));
+          const errorMessage =
+            error instanceof Error ? error.message : "Stream error occurred";
+          controller.enqueue(
+            encoder.encode(`\n\n---\n\n**Error:** ${errorMessage}`),
+          );
           controller.close();
         }
       },
@@ -182,7 +216,9 @@ Output ONLY the MDX content.`;
     console.error("[v0] Error generating changelog:", error);
 
     const errorMessage =
-      error instanceof Error ? error.message : "An error occurred while generating the changelog";
+      error instanceof Error
+        ? error.message
+        : "An error occurred while generating the changelog";
 
     // Return error as plain text stream so it displays in the UI
     return new Response(
