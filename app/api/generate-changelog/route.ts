@@ -17,7 +17,8 @@ const unkey = new Ratelimit({
 
 export async function POST(req: Request) {
   try {
-    const { repository, dateMode, days, startDate, endDate, identifier } = await req.json();
+    const { repository, dateMode, days, startDate, endDate, identifier } =
+      await req.json();
 
     console.log("API: Received request data:", {
       repository,
@@ -29,7 +30,10 @@ export async function POST(req: Request) {
     });
 
     if (!repository) {
-      return Response.json({ error: "Repository is required" }, { status: 400 });
+      return Response.json(
+        { error: "Repository is required" },
+        { status: 400 },
+      );
     }
 
     if (!repository.includes("/") || repository.split("/").length !== 2) {
@@ -40,7 +44,10 @@ export async function POST(req: Request) {
     }
 
     if (!identifier) {
-      return Response.json({ error: "Fingerprint identifier is required" }, { status: 400 });
+      return Response.json(
+        { error: "Fingerprint identifier is required" },
+        { status: 400 },
+      );
     }
     const ratelimit = await unkey.limit(identifier);
     if (!ratelimit.success) {
@@ -54,7 +61,12 @@ export async function POST(req: Request) {
       startDate,
       endDate,
     });
-    const { start, end } = calculateDateRange(dateMode, days, startDate, endDate);
+    const { start, end } = calculateDateRange(
+      dateMode,
+      days,
+      startDate,
+      endDate,
+    );
     console.log("API: Calculated date range:", {
       start: start.toISOString(),
       end: end.toISOString(),
@@ -150,19 +162,16 @@ Organize EVERY PR from the data into appropriate sections:
 For each PR use this exact format:
 - **[Descriptive Title]** [#${"{"}number}](https://github.com/${repository}/pull/${"{"}number}) - Brief description of the change and its impact. (Author: @${"{"}author})
 
-## Complete PR Index
-${totalCount === 1 ? "The" : "All"} ${totalCount} pull request${totalCount === 1 ? "" : "s"} included:
-[List EVERY PR number in numerical order as a final verification: #123, #124, #125, etc.]
+INTERNAL VERIFICATION (DO NOT INCLUDE IN OUTPUT):
+Before finalizing your response, internally verify:
+1. Create a mental list of all ${totalCount} PR numbers from the JSON data
+2. Ensure each PR appears exactly once in the appropriate category
+3. Verify no PR from the source data has been skipped
+4. If truncated, note: "Note: Only the first X PRs were provided in the source data due to volume limitations."
 
-VERIFICATION CHECKLIST:
-- ✅ I have processed all ${totalCount} PRs from the JSON data
-- ✅ Each PR appears exactly once in the appropriate category
-- ✅ The PR Index at the end lists all ${totalCount} numbers
-- ✅ No PR from the source data has been skipped
+DO NOT include the PR index or verification checklist in your output - these are for your internal verification only.
 
-If you cannot fit all PRs due to truncation in the source data, explicitly state: "Note: Only the first X PRs were provided in the source data due to volume limitations."
-
-Output ONLY the MDX content.`;
+Output ONLY the MDX content for the changelog.`;
 
     console.log(`Starting AI generation with ${totalCount} PRs`);
 
@@ -184,8 +193,11 @@ Output ONLY the MDX content.`;
           controller.close();
         } catch (error) {
           console.error("[v0] Error in stream:", error);
-          const errorMessage = error instanceof Error ? error.message : "Stream error occurred";
-          controller.enqueue(encoder.encode(`\n\n---\n\n**Error:** ${errorMessage}`));
+          const errorMessage =
+            error instanceof Error ? error.message : "Stream error occurred";
+          controller.enqueue(
+            encoder.encode(`\n\n---\n\n**Error:** ${errorMessage}`),
+          );
           controller.close();
         }
       },
@@ -201,7 +213,9 @@ Output ONLY the MDX content.`;
     console.error("[v0] Error generating changelog:", error);
 
     const errorMessage =
-      error instanceof Error ? error.message : "An error occurred while generating the changelog";
+      error instanceof Error
+        ? error.message
+        : "An error occurred while generating the changelog";
 
     // Return error as plain text stream so it displays in the UI
     return new Response(
