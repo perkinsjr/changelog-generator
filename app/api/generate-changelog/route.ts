@@ -77,7 +77,7 @@ export async function POST(req: Request) {
       promptData = JSON.stringify(prSummaries, null, 2);
     }
 
-    const prompt = `You are a CEO creating a detailed changelog from GitHub pull requests in a casual tone.
+    const prompt = `You are an experienced technical writer creating a detailed changelog from GitHub pull requests.
 
 Repository: ${repository}
 Date Range: ${start.toISOString().split("T")[0]} to ${end.toISOString().split("T")[0]}
@@ -86,56 +86,64 @@ Total PRs: ${totalCount}
 Pull Requests Data:
 ${promptData}
 
-⚠️ MANDATORY REQUIREMENT: You MUST include ALL ${totalCount} pull requests in the changelog. No exceptions.
+🚨 CRITICAL INSTRUCTION: You must process EVERY SINGLE pull request from the JSON data above. This is not optional.
 
-STEP 1: Before writing the changelog, count the PRs in the data above to verify you have ${totalCount} items.
+BEFORE YOU START WRITING:
+1. Parse the JSON data and extract EVERY pull request entry
+2. Create a mental list of all ${totalCount} PR numbers
+3. You will reference each one exactly once in the changelog
 
-STEP 2: Generate a comprehensive changelog in MDX format with the following structure:
+FORMAT REQUIREMENTS:
 
-# TITLE (max 120 characters)
-Create an engaging title that captures the most significant change or theme of this release.
+# [Engaging Title - max 120 characters]
 
 ## Summary
-Write a compelling 600-800 word summary that:
-- Highlights the most impactful changes and their benefits to users
-- Explains the context and reasoning behind major updates
-- Mentions key contributors and community involvement
-- Uses a conversational, engaging tone that tells the story of this release
-- Focuses on user value rather than just technical details
+Write a 600-800 word engaging summary covering the major themes and impacts of this release.
 
-## Categories
-Organize ALL ${totalCount} PRs into these sections (create sections as needed):
-- 🚀 Features & Enhancements
-- 🐛 Bug Fixes
-- ⚡ Performance Improvements
-- 📚 Documentation
-- 🔧 Internal Changes
-- 🧪 Testing
-- 🏗️ Infrastructure
-- 🔒 Security
+## Pull Requests by Category
 
-For each PR, provide:
-- Title (make it more descriptive if the original is unclear)
-- PR link using format: [#123](https://github.com/${repository}/pull/123)
-- 1-2 sentence description of what changed and why it matters
-- Credit the author when possible
+Organize EVERY PR from the data into appropriate sections:
 
-STEP 3: After writing all sections, add a verification section at the end:
+### 🚀 Features & Enhancements
+[List all feature/enhancement PRs here]
 
-## Verification
-✅ Total PRs included: [COUNT THE ACTUAL PRs YOU LISTED]
-Target: ${totalCount} PRs
+### 🐛 Bug Fixes
+[List all bug fix PRs here]
 
-If your count doesn't match ${totalCount}, you MUST go back and find the missing PRs.
+### ⚡ Performance Improvements
+[List all performance PRs here]
 
-ABSOLUTE REQUIREMENTS:
-- Every single PR from the data must appear in one of the category sections
-- If you see "Note: X additional PRs were found but truncated", mention this clearly
-- Double-check your work by counting the PRs you've listed
-- Make descriptions meaningful, not just repeating the title
-- Group related PRs together logically
+### 📚 Documentation
+[List all documentation PRs here]
 
-Output ONLY the MDX content with no additional commentary.`;
+### 🔧 Internal Changes
+[List all internal/refactor PRs here]
+
+### 🧪 Testing
+[List all testing PRs here]
+
+### 🏗️ Infrastructure
+[List all infrastructure PRs here]
+
+### 🔒 Security
+[List all security PRs here]
+
+For each PR use this exact format:
+- **[Descriptive Title]** [#${"{"}number}](https://github.com/${repository}/pull/${"{"}number}) - Brief description of the change and its impact. (Author: @${"{"}author})
+
+## Complete PR Index
+${totalCount === 1 ? "The" : "All"} ${totalCount} pull request${totalCount === 1 ? "" : "s"} included:
+[List EVERY PR number in numerical order as a final verification: #123, #124, #125, etc.]
+
+VERIFICATION CHECKLIST:
+- ✅ I have processed all ${totalCount} PRs from the JSON data
+- ✅ Each PR appears exactly once in the appropriate category
+- ✅ The PR Index at the end lists all ${totalCount} numbers
+- ✅ No PR from the source data has been skipped
+
+If you cannot fit all PRs due to truncation in the source data, explicitly state: "Note: Only the first X PRs were provided in the source data due to volume limitations."
+
+Output ONLY the MDX content.`;
 
     console.log(`Starting AI generation with ${totalCount} PRs`);
 
