@@ -1,11 +1,11 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { FileText, Copy, Download, Check, CheckCircle } from "lucide-react";
-import { MDXRenderer } from "@/components/mdx-renderer";
-import { Spinner } from "@/components/ui/spinner";
+import { Check, CheckCircle, Copy, Download, FileText } from "lucide-react";
 import { useState } from "react";
+import { MDXRenderer } from "@/components/mdx-renderer";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
 
 interface ChangelogDisplayProps {
   changelog: string;

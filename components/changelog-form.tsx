@@ -1,15 +1,15 @@
 "use client";
 
+import { AlertCircle, Calendar, GitBranch, Info } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
-import { useFingerprint } from "@/hooks/use-fingerprint";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { GitBranch, Calendar, AlertCircle, Info } from "lucide-react";
+import { useFingerprint } from "@/hooks/use-fingerprint";
 
 interface ChangelogFormProps {
   onGenerate: (changelog: string) => void;
@@ -28,8 +28,12 @@ export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: Cha
 
   // Form validation
   const isFormValid = () => {
-    if (!repository.trim()) return false;
-    if (!fingerprint || fingerprintLoading) return false;
+    if (!repository.trim()) {
+      return false;
+    }
+    if (!fingerprint || fingerprintLoading) {
+      return false;
+    }
 
     if (dateMode === "days") {
       const dayValue = Number.parseInt(days);
@@ -37,7 +41,9 @@ export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: Cha
     }
 
     if (dateMode === "range") {
-      if (!startDate || !endDate) return false;
+      if (!startDate || !endDate) {
+        return false;
+      }
       return new Date(endDate) >= new Date(startDate);
     }
 
@@ -82,7 +88,9 @@ export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: Cha
       if (reader) {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            break;
+          }
 
           const chunk = decoder.decode(value, { stream: true });
           accumulatedText += chunk;

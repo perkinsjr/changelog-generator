@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ChangelogForm } from "@/components/changelog-form";
 import { ChangelogDisplay } from "@/components/changelog-display";
+import { ChangelogForm } from "@/components/changelog-form";
 
 export default function Home() {
   const [changelog, setChangelog] = useState<string>("");

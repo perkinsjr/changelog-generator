@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import FingerprintJS from "@fingerprintjs/fingerprintjs";
+import { useEffect, useState } from "react";
 
 export function useFingerprint() {
   const [fingerprint, setFingerprint] = useState<string | null>(null);

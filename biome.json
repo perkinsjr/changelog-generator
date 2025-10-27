@@ -5,6 +5,7 @@
   },
   "linter": {
     "enabled": true,
+    "includes": ["**/*", "!node_modules/**", "!.next/**", "!next-env.d.ts"],
     "rules": {
       "recommended": true,
       "a11y": {
@@ -45,7 +46,13 @@
     "indentStyle": "space",
     "indentWidth": 2,
     "enabled": true,
-    "lineWidth": 100
+    "lineWidth": 100,
+    "includes": ["**/*", "!node_modules/**", "!.next/**", "!next-env.d.ts"]
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
   },
   "assist": {
     "actions": {
