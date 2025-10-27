@@ -77,7 +77,7 @@ export async function POST(req: Request) {
       promptData = JSON.stringify(prSummaries, null, 2);
     }
 
-    const prompt = `You are an experienced technical writer creating a detailed changelog from GitHub pull requests.
+    const prompt = `You are a CEO creating a detailed changelog from GitHub pull requests in a casual tone.
 
 Repository: ${repository}
 Date Range: ${start.toISOString().split("T")[0]} to ${end.toISOString().split("T")[0]}
@@ -86,7 +86,11 @@ Total PRs: ${totalCount}
 Pull Requests Data:
 ${promptData}
 
-Generate a comprehensive changelog in MDX format with the following structure:
+⚠️ MANDATORY REQUIREMENT: You MUST include ALL ${totalCount} pull requests in the changelog. No exceptions.
+
+STEP 1: Before writing the changelog, count the PRs in the data above to verify you have ${totalCount} items.
+
+STEP 2: Generate a comprehensive changelog in MDX format with the following structure:
 
 # TITLE (max 120 characters)
 Create an engaging title that captures the most significant change or theme of this release.
@@ -116,12 +120,20 @@ For each PR, provide:
 - 1-2 sentence description of what changed and why it matters
 - Credit the author when possible
 
-CRITICAL REQUIREMENTS:
-- Include ALL ${totalCount} PRs - do not skip any
-- If you see "Note: X additional PRs were found but truncated", acknowledge this in a final section
+STEP 3: After writing all sections, add a verification section at the end:
+
+## Verification
+✅ Total PRs included: [COUNT THE ACTUAL PRs YOU LISTED]
+Target: ${totalCount} PRs
+
+If your count doesn't match ${totalCount}, you MUST go back and find the missing PRs.
+
+ABSOLUTE REQUIREMENTS:
+- Every single PR from the data must appear in one of the category sections
+- If you see "Note: X additional PRs were found but truncated", mention this clearly
+- Double-check your work by counting the PRs you've listed
 - Make descriptions meaningful, not just repeating the title
 - Group related PRs together logically
-- Use emojis and formatting to make it scannable and engaging
 
 Output ONLY the MDX content with no additional commentary.`;
 
