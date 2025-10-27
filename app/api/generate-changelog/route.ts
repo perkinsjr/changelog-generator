@@ -44,7 +44,7 @@ export async function POST(req: Request) {
     const { start, end } = calculateDateRange(dateMode, days, startDate, endDate);
 
     console.log(
-      `[v0] Fetching PRs for ${repository} from ${start.toISOString()} to ${end.toISOString()}`,
+      `Fetching PRs for ${repository} from ${start.toISOString()} to ${end.toISOString()}`,
     );
 
     // Fetch PRs from GitHub
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
       );
     }
 
-    console.log(`[v0] Fetched ${totalCount} PRs for ${repository}`);
+    console.log(`Fetched ${totalCount} PRs for ${repository}`);
 
     // Prepare PR data for AI processing
     const prSummaries = prs.map((pr) => ({
@@ -90,7 +90,7 @@ ${promptData}
 
 Generate a comprehensive changelog in MDX format with the following structure:
 1. A title made from the most important change, or a brief summary of the changes, no more than 150 characters.
-2. A summary section highlighting the most important changes in a casual manner, this should be at least 400 characters.
+2. A summary section highlighting the most important changes in a casual manner, this should be at least 200 words.
 3. Categorized sections (Features, Bug Fixes, Performance, Documentation, etc.)
 4. Each PR should be listed with its title, PR number (as a link), and a brief description
 5. Use proper markdown formatting with headers, lists, and links
