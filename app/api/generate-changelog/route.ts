@@ -77,34 +77,61 @@ export async function POST(req: Request) {
       promptData = JSON.stringify(prSummaries, null, 2);
     }
 
-    const prompt = `You are a CEO creating a detailed changelog from GitHub pull requests.
+    const prompt = `You are an experienced technical writer creating a detailed changelog from GitHub pull requests.
 
 Repository: ${repository}
 Date Range: ${start.toISOString().split("T")[0]} to ${end.toISOString().split("T")[0]}
 Total PRs: ${totalCount}
 
-Pull Requests:
+Pull Requests Data:
 ${promptData}
 
 Generate a comprehensive changelog in MDX format with the following structure:
-1. A title made from the most important change, or a brief summary of the changes, no more than 150 characters.
-2. A summary section highlighting the most important changes in a casual manner, this should be at least 500 words but no more than 700 words.
-3. Categorized sections (Features, Bug Fixes, Performance, Documentation, etc.)
-4. Each PR should be listed with its title, PR number (as a link), and a brief description, and under one of the category sections, do not skip any PRs. Make sure that the PR count matches the ${totalCount}, unless prompted otherwise.
-5. Use proper markdown formatting with headers, lists, and links
 
-Make the changelog casual, clear, and easy to read. Group related changes together.
-Use this exact link format for PRs: [#123](https://github.com/${repository}/pull/123)
+# TITLE (max 120 characters)
+Create an engaging title that captures the most significant change or theme of this release.
 
-IMPORTANT: Output ONLY the MDX content, no additional commentary or explanations.`;
+## Summary
+Write a compelling 600-800 word summary that:
+- Highlights the most impactful changes and their benefits to users
+- Explains the context and reasoning behind major updates
+- Mentions key contributors and community involvement
+- Uses a conversational, engaging tone that tells the story of this release
+- Focuses on user value rather than just technical details
+
+## Categories
+Organize ALL ${totalCount} PRs into these sections (create sections as needed):
+- 🚀 Features & Enhancements
+- 🐛 Bug Fixes
+- ⚡ Performance Improvements
+- 📚 Documentation
+- 🔧 Internal Changes
+- 🧪 Testing
+- 🏗️ Infrastructure
+- 🔒 Security
+
+For each PR, provide:
+- Title (make it more descriptive if the original is unclear)
+- PR link using format: [#123](https://github.com/${repository}/pull/123)
+- 1-2 sentence description of what changed and why it matters
+- Credit the author when possible
+
+CRITICAL REQUIREMENTS:
+- Include ALL ${totalCount} PRs - do not skip any
+- If you see "Note: X additional PRs were found but truncated", acknowledge this in a final section
+- Make descriptions meaningful, not just repeating the title
+- Group related PRs together logically
+- Use emojis and formatting to make it scannable and engaging
+
+Output ONLY the MDX content with no additional commentary.`;
 
     console.log(`Starting AI generation with ${totalCount} PRs`);
 
     const result = await streamText({
-      model: "openai/gpt-4o-mini",
+      model: "openai/gpt-4o",
       prompt,
-      maxTokens: 15000,
-      temperature: 0.7,
+      maxTokens: 16000,
+      temperature: 0.3,
     });
 
     // Return a streaming response
