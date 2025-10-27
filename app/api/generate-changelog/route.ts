@@ -92,7 +92,7 @@ Generate a comprehensive changelog in MDX format with the following structure:
 1. A title made from the most important change, or a brief summary of the changes, no more than 150 characters.
 2. A summary section highlighting the most important changes in a casual manner, this should be at least 350 words but no more than 500 words.
 3. Categorized sections (Features, Bug Fixes, Performance, Documentation, etc.)
-4. Each PR should be listed with its title, PR number (as a link), and a brief description
+4. Each PR should be listed with its title, PR number (as a link), and a brief description, do not skip any PRs. Make sure that the PR count matches the ${totalCount}, unless prompted otherwise.
 5. Use proper markdown formatting with headers, lists, and links
 
 Make the changelog casual, clear, and easy to read. Group related changes together.
