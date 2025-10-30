@@ -36,7 +36,7 @@ export function NavigationHeader({ className = "" }: NavigationHeaderProps) {
     >
       <div className="container flex h-16 items-center justify-between">
         {/* Navigation Links */}
-        <nav className="flex items-center gap-6">
+        <nav className="flex items-center gap-6 pl-4">
           <Button
             variant={pathname === "/" ? "default" : "ghost"}
             size="sm"
