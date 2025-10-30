@@ -3,35 +3,93 @@
 import { useState } from "react";
 import { ChangelogDisplay } from "@/components/changelog-display";
 import { ChangelogForm } from "@/components/changelog-form";
+import { useAuth } from "@/lib/auth/client";
+import { LoginButton } from "@/components/auth/login-button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { GitBranchIcon } from "lucide-react";
+import { RepositoryManagement } from "@/components/repository-management";
+import { NavigationHeader } from "@/components/navigation-header";
 
 export default function Home() {
   const [changelog, setChangelog] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedRepository, setSelectedRepository] = useState<string>("");
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   return (
-    <main className="min-h-screen bg-background">
-      <div className="mx-auto max-w-5xl px-4 py-12">
-        <div className="mb-12 text-center">
-          <h1 className="mb-3 text-5xl font-bold tracking-tight text-balance">
-            AI Changelog Generator
-          </h1>
-          <p className="text-lg text-muted-foreground text-balance">
-            Generate detailed changelogs from GitHub pull requests using AI
-          </p>
-        </div>
+    <div className="min-h-screen bg-background">
+      <NavigationHeader />
+      <main>
+        <div className="mx-auto max-w-5xl px-4 py-12">
+          {/* Hero Section */}
+          <div className="mb-12 text-center">
+            <h1 className="mb-3 text-5xl font-bold tracking-tight text-balance">
+              AI Changelog Generator
+            </h1>
+            <p className="text-lg text-muted-foreground text-balance">
+              Generate detailed changelogs from GitHub pull requests using AI
+            </p>
+          </div>
 
-        <div className="space-y-8">
-          <ChangelogForm
-            onGenerate={setChangelog}
-            isGenerating={isGenerating}
-            setIsGenerating={setIsGenerating}
-          />
+          {/* Repository Management */}
+          {isAuthenticated && (
+            <RepositoryManagement
+              onRepositorySelect={(repo) =>
+                setSelectedRepository(repo.full_name)
+              }
+              selectedRepository={selectedRepository}
+            />
+          )}
 
-          {(changelog || isGenerating) && (
-            <ChangelogDisplay changelog={changelog} isGenerating={isGenerating} />
+          {/* Main Form */}
+          <div className="space-y-8">
+            <ChangelogForm
+              onGenerate={setChangelog}
+              isGenerating={isGenerating}
+              setIsGenerating={setIsGenerating}
+              preselectedRepository={selectedRepository}
+            />
+
+            {(changelog || isGenerating) && (
+              <ChangelogDisplay
+                changelog={changelog}
+                isGenerating={isGenerating}
+              />
+            )}
+          </div>
+
+          {/* Anonymous User Notice */}
+          {!isAuthenticated && !isLoading && changelog && (
+            <Card className="mt-8 border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/20">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-amber-500 rounded-full mt-2 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      <strong>Anonymous Mode:</strong> You're using limited
+                      GitHub API access.
+                      <LoginButton
+                        variant="link"
+                        className="p-0 ml-1 h-auto text-amber-800 dark:text-amber-200 underline"
+                      >
+                        Sign in
+                      </LoginButton>{" "}
+                      for private repos and higher rate limits.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

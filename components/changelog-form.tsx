@@ -2,32 +2,67 @@
 
 import { AlertCircle, Calendar, GitBranch, Info } from "lucide-react";
 import type React from "react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { useFingerprint } from "@/hooks/use-fingerprint";
+import { useAuth } from "@/lib/auth/client";
+import { RepositorySelector } from "@/components/repository-selector";
+import {
+  EnhancedErrorHandler,
+  parseGitHubError,
+  type GitHubError,
+} from "@/components/enhanced-error-handler";
 
 interface ChangelogFormProps {
   onGenerate: (changelog: string) => void;
   isGenerating: boolean;
   setIsGenerating: (value: boolean) => void;
+  preselectedRepository?: string;
 }
 
-export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: ChangelogFormProps) {
-  const [repository, setRepository] = useState("");
+export function ChangelogForm({
+  onGenerate,
+  isGenerating,
+  setIsGenerating,
+  preselectedRepository,
+}: ChangelogFormProps) {
+  const [repository, setRepository] = useState(preselectedRepository || "");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<GitHubError | null>(null);
+
+  const [isRetrying, setIsRetrying] = useState(false);
   const { fingerprint, isLoading: fingerprintLoading } = useFingerprint();
+  const { isAuthenticated, user } = useAuth();
+
+  // Update repository when preselected repository changes
+  useEffect(() => {
+    if (preselectedRepository) {
+      setRepository(preselectedRepository);
+    }
+  }, [preselectedRepository]);
 
   // Memoize date objects to prevent infinite re-renders
-  const startDateMax = useMemo(() => (endDate ? new Date(endDate) : new Date()), [endDate]);
-  const endDateMin = useMemo(() => (startDate ? new Date(startDate) : undefined), [startDate]);
+  const startDateMax = useMemo(
+    () => (endDate ? new Date(endDate) : new Date()),
+    [endDate],
+  );
+  const endDateMin = useMemo(
+    () => (startDate ? new Date(startDate) : undefined),
+    [startDate],
+  );
   const endDateMax = useMemo(() => new Date(), []);
 
   // Form validation
@@ -45,8 +80,7 @@ export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: Cha
     return new Date(endDate) >= new Date(startDate);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitForm = async () => {
     setIsGenerating(true);
     setError(null);
 
@@ -55,12 +89,21 @@ export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: Cha
     await new Promise((resolve) => setTimeout(resolve, 100));
 
     if (!fingerprint) {
-      setError("Fingerprint not available. Please try again.");
+      setError(
+        parseGitHubError({
+          message: "Fingerprint not available. Please try again.",
+        }),
+      );
       setIsGenerating(false);
       return;
     }
 
     try {
+      // Determine which API endpoint to use
+      const apiEndpoint = isAuthenticated
+        ? "/api/generate-changelog-auth"
+        : "/api/generate-changelog";
+
       // Debug logging
       console.log("Submitting form with:", {
         repository,
@@ -68,9 +111,10 @@ export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: Cha
         startDate,
         endDate,
         identifier: fingerprint,
+        endpoint: apiEndpoint,
       });
 
-      const response = await fetch("/api/generate-changelog", {
+      const response = await fetch(apiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -83,8 +127,15 @@ export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: Cha
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to generate changelog");
+        const errorData = await response.json();
+        const githubError = parseGitHubError({
+          response: {
+            status: response.status,
+            data: errorData,
+            headers: Object.fromEntries(response.headers.entries()),
+          },
+        });
+        throw githubError;
       }
 
       const reader = response.body?.getReader();
@@ -109,12 +160,21 @@ export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: Cha
       }
     } catch (error) {
       console.error("Error generating changelog:", error);
-      const errorMessage = error instanceof Error ? error.message : "An error occurred";
-      setError(errorMessage);
+      const githubError =
+        error instanceof Error
+          ? parseGitHubError(error)
+          : parseGitHubError({ message: "An unexpected error occurred" });
+      setError(githubError);
       onGenerate("");
     } finally {
       setIsGenerating(false);
+      setIsRetrying(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await submitForm();
   };
 
   return (
@@ -125,40 +185,72 @@ export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: Cha
           Repository Configuration
         </CardTitle>
         <CardDescription>
-          Enter the GitHub repository and select a time frame for changelog generation
+          {isAuthenticated
+            ? "Select a repository from your GitHub account or enter manually"
+            : "Enter the GitHub repository and select a time frame for changelog generation"}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
+          <div className="mb-4">
+            <EnhancedErrorHandler
+              error={error}
+              onRetry={async () => {
+                setIsRetrying(true);
+                setError(null);
+                try {
+                  await submitForm();
+                } catch (error) {
+                  console.error("Retry failed:", error);
+                } finally {
+                  setIsRetrying(false);
+                }
+              }}
+              onDismiss={() => setError(null)}
+              isRetrying={isRetrying}
+            />
+          </div>
         )}
 
-        <Alert className="mb-4">
-          <Info className="h-4 w-4" />
-          <AlertTitle>Rate Limiting</AlertTitle>
-          <AlertDescription>
-            This service is rate limited to 5 requests per minute per user to ensure fair usage.
-          </AlertDescription>
-        </Alert>
+        {!isAuthenticated && (
+          <Alert className="mb-4">
+            <Info className="h-4 w-4" />
+            <AlertTitle>Rate Limiting</AlertTitle>
+            <AlertDescription>
+              This service is rate limited to 5 requests per minute per user to
+              ensure fair usage. Sign in for higher limits and private
+              repository access.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="repository">GitHub Repository</Label>
-            <Input
-              id="repository"
-              placeholder="owner/repository (e.g., vercel/next.js)"
-              value={repository}
-              onChange={(e) => setRepository(e.target.value)}
-              required
-              disabled={isGenerating}
-            />
-            <p className="text-sm text-muted-foreground">
-              Enter the repository in owner/name format
-            </p>
+
+            {isAuthenticated ? (
+              <RepositorySelector
+                value={repository}
+                onValueChange={setRepository}
+                placeholder="Select a repository..."
+                disabled={isGenerating}
+                className="w-full"
+              />
+            ) : (
+              <>
+                <Input
+                  id="repository"
+                  placeholder="owner/repository (e.g., vercel/next.js)"
+                  value={repository}
+                  onChange={(e) => setRepository(e.target.value)}
+                  required
+                  disabled={isGenerating}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Enter the repository in owner/name format
+                </p>
+              </>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -190,16 +282,19 @@ export function ChangelogForm({ onGenerate, isGenerating, setIsGenerating }: Cha
               </div>
             </div>
             <p className="text-sm text-muted-foreground">
-              Select a date range for the changelog. End date cannot be before start date.
+              Select a date range for the changelog. End date cannot be before
+              start date.
             </p>
           </div>
 
           <Button
             type="submit"
             className="w-full"
-            disabled={isGenerating || fingerprintLoading || !isFormValid()}
+            disabled={
+              isGenerating || fingerprintLoading || !isFormValid() || isRetrying
+            }
           >
-            {isGenerating
+            {isGenerating || isRetrying
               ? "Generating..."
               : fingerprintLoading
                 ? "Loading..."

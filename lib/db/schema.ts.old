@@ -1,0 +1,149 @@
+import {
+  pgTable,
+  varchar,
+  timestamp,
+  text,
+  uuid,
+  index,
+  uniqueIndex,
+  boolean,
+} from "drizzle-orm/pg-core";
+
+/**
+ * DATABASE SCHEMA FOR ENCRYPTED TOKEN STORAGE
+ *
+ * This schema defines storage for OAuth tokens that are encrypted via
+ * Better Auth database hooks (implemented separately). All access tokens
+ * and refresh tokens are automatically encrypted before storage and
+ * decrypted on retrieval by the application layer.
+ *
+ * ENCRYPTION IMPLEMENTATION LOCATIONS:
+ * 1. Better Auth Hooks (lib/auth/config.ts):
+ *    - account.create.before: Encrypts tokens on INSERT
+ *    - account.update.before: Encrypts tokens on UPDATE
+ *    - account.read.after: Decrypts tokens on SELECT
+ *
+ * 2. Token Utilities (lib/utils.ts):
+ *    - getGitHubToken(): Retrieves and decrypts tokens for API use
+ *
+ * 3. Crypto Module (lib/crypto.ts):
+ *    - encryptToken()/decryptToken(): AES-256-GCM implementation
+ *
+ * MAINTENANCE REQUIREMENTS:
+ * - Ensure TOKEN_ENCRYPTION_KEY environment variable is secure
+ * - Monitor encryption/decryption error logs in application layer
+ * - Coordinate schema changes with encryption implementation
+ */
+
+// Users table - stores GitHub user information
+export const users = pgTable("users", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  githubId: varchar("github_id", { length: 255 }).unique().notNull(),
+  login: varchar("login", { length: 255 }).notNull(),
+  name: varchar("name", { length: 255 }),
+  email: varchar("email", { length: 255 }),
+  emailVerified: boolean("email_verified").default(false).notNull(),
+  image: varchar("image", { length: 500 }),
+  avatarUrl: varchar("avatar_url", { length: 500 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
+
+// Sessions table - managed by Better Auth
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: timestamp("expires_at").notNull(),
+    token: varchar("token", { length: 255 }).notNull().unique(), // Store one-way hashed token (non-reversible)
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    ipAddress: varchar("ip_address", { length: 45 }),
+    userAgent: text("user_agent"),
+  },
+  (table) => ({
+    userIdIdx: index("sessions_user_id_idx").on(table.userId),
+    expiresAtIdx: index("sessions_expires_at_idx").on(table.expiresAt),
+  }),
+);
+
+// Accounts table - managed by Better Auth for OAuth connections
+export const accounts = pgTable(
+  "accounts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    accountId: varchar("account_id", { length: 255 }).notNull(),
+    providerId: varchar("provider_id", { length: 255 }).notNull(),
+    // SECURITY: These OAuth token fields store ENCRYPTED sensitive data (AES-256-GCM)
+    // Encryption/decryption handled automatically by Better Auth database hooks
+    accessToken: text("access_token"), // Encrypted GitHub/OAuth access tokens
+    refreshToken: text("refresh_token"), // Encrypted OAuth refresh tokens
+    idToken: text("id_token"), // OIDC identity tokens
+    accessTokenExpiresAt: timestamp("access_token_expires_at"),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
+    scope: varchar("scope", { length: 500 }),
+    // NOTE: password field is intentional - Better Auth uses this for mixed auth
+    // (stores hashed passwords when providerId = "credential")
+    password: varchar("password", { length: 255 }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => ({
+    // Index on userId for better join performance
+    userIdIdx: index("accounts_user_id_idx").on(table.userId),
+    // Prevents duplicate OAuth account linkages (security measure)
+    accountProviderUnique: uniqueIndex("accounts_account_provider_unique").on(
+      table.accountId,
+      table.providerId,
+    ),
+  }),
+);
+
+// Verification tokens table - for email verification, password reset, etc.
+export const verificationTokens = pgTable(
+  "verification_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    identifier: varchar("identifier", { length: 255 }).notNull(),
+    value: varchar("value", { length: 255 }).notNull().unique(), // Store one-way hashed token (non-reversible)
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => ({
+    identifierIdx: index("verification_tokens_identifier_idx").on(
+      table.identifier,
+    ),
+    expiresAtIdx: index("verification_tokens_expires_at_idx").on(
+      table.expiresAt,
+    ),
+  }),
+);
+
+// Export types for TypeScript
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+export type Session = typeof sessions.$inferSelect;
+export type NewSession = typeof sessions.$inferInsert;
+export type Account = typeof accounts.$inferSelect;
+export type NewAccount = typeof accounts.$inferInsert;
+export type VerificationToken = typeof verificationTokens.$inferSelect;
+export type NewVerificationToken = typeof verificationTokens.$inferInsert;
