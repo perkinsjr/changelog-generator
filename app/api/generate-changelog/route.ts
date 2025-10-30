@@ -107,7 +107,7 @@ export async function POST(req: Request) {
       promptData = JSON.stringify(prSummaries, null, 2);
     }
 
-    const prompt = `You are an experienced technical writer creating a detailed changelog from GitHub pull requests.
+    const prompt = `You are the CEO of the company creating a detailed changelog from GitHub pull requests. The summary should be engaging and casual, highlighting the most impactful changes and features.
 
 Repository: ${repository}
 Date Range: ${start.toISOString().split("T")[0]} to ${end.toISOString().split("T")[0]}
