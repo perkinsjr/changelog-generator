@@ -73,7 +73,9 @@ export async function fetchGitHubPRs(
         if (response.status === 403) {
           const rateLimitReset = response.headers.get("X-RateLimit-Reset");
           const resetTime = rateLimitReset
-            ? new Date(Number.parseInt(rateLimitReset) * 1000).toLocaleTimeString()
+            ? new Date(
+                Number.parseInt(rateLimitReset) * 1000,
+              ).toLocaleTimeString()
             : "unknown";
           throw new Error(
             `GitHub API rate limit exceeded. Rate limit resets at ${resetTime}. Please add a GITHUB_TOKEN environment variable for higher limits.`,
@@ -85,9 +87,13 @@ export async function fetchGitHubPRs(
           );
         }
         if (response.status === 422) {
-          throw new Error(`Invalid query parameters. Please check your date range.`);
+          throw new Error(
+            `Invalid query parameters. Please check your date range.`,
+          );
         }
-        throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `GitHub API error: ${response.status} ${response.statusText}`,
+        );
       }
 
       const data = await response.json();
@@ -139,7 +145,9 @@ export function calculateDateRange(
       throw new Error("Start date must be before end date");
     }
 
-    const daysDiff = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const daysDiff = Math.floor(
+      (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
+    );
     if (daysDiff > 365) {
       console.warn(
         `Large date range detected: ${daysDiff} days. This may result in many PRs and longer processing time.`,
@@ -151,3 +159,14 @@ export function calculateDateRange(
 
   return { start, end };
 }
+
+// Re-export authenticated functions for convenience
+export {
+  fetchGitHubPRsAuthenticated,
+  fetchUserRepositories,
+  fetchAllUserRepositories,
+  filterRepositories,
+  sortRepositories,
+  type GitHubRepository,
+  type GitHubRepositoriesResponse,
+} from "./github/authenticated";
