@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { auth, type Session } from "@/lib/auth/config";
+import { decryptToken } from "@/lib/crypto";
 
 // Authentication helper utilities for server components
 export async function getServerSession(): Promise<Session | null> {
@@ -71,8 +72,13 @@ export async function getGitHubToken(userId: string): Promise<string | null> {
       return null;
     }
 
-    // Better Auth stores tokens unencrypted by default
-    return accessToken;
+    // Decrypt the encrypted token
+    try {
+      return await decryptToken(accessToken);
+    } catch (error) {
+      console.error("Failed to decrypt GitHub token:", error);
+      return null;
+    }
   } catch (error) {
     console.error("GitHub token retrieval failed", {
       type: error instanceof Error ? error.name : "Error",

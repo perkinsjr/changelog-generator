@@ -1,27 +1,7 @@
-import {
-  createHash,
-  createCipheriv,
-  createDecipheriv,
-  randomBytes,
-  timingSafeEqual,
-} from "crypto";
+import { createHash, randomBytes, timingSafeEqual } from "crypto";
 import { getDb } from "@/lib/db";
 import { session, account, verification } from "@/lib/db/better-auth-schema";
 import { eq, and, lt, gt } from "drizzle-orm";
-
-/**
- * Get encryption key from environment variable
- */
-function getEncryptionKey(): Buffer {
-  const key = process.env.ENCRYPTION_KEY;
-  if (!key) {
-    throw new Error("ENCRYPTION_KEY environment variable is required");
-  }
-  if (key.length !== 64) {
-    throw new Error("ENCRYPTION_KEY must be 64 hex characters (32 bytes)");
-  }
-  return Buffer.from(key, "hex");
-}
 
 /**
  * Hash a token using SHA-256
@@ -42,59 +22,6 @@ function verifyTokenHash(token: string, hash: string): boolean {
   const tokenHashBuffer = new Uint8Array(Buffer.from(tokenHash));
   const hashBuffer = new Uint8Array(Buffer.from(hash));
   return timingSafeEqual(tokenHashBuffer, hashBuffer);
-}
-
-/**
- * Encrypt a token using AES-256-GCM
- */
-function encryptToken(token: string): string {
-  try {
-    const key = getEncryptionKey();
-    const iv = randomBytes(12); // 12 bytes for GCM
-    const cipher = createCipheriv(
-      "aes-256-gcm",
-      new Uint8Array(key),
-      new Uint8Array(iv),
-    );
-
-    let encrypted = cipher.update(token, "utf8", "hex");
-    encrypted += cipher.final("hex");
-
-    const authTag = cipher.getAuthTag();
-
-    // Format: iv:authTag:encrypted
-    return `${iv.toString("hex")}:${authTag.toString("hex")}:${encrypted}`;
-  } catch (error) {
-    throw new Error("Token encryption failed");
-  }
-}
-
-/**
- * Decrypt a token using AES-256-GCM
- */
-function decryptToken(encryptedToken: string): string {
-  try {
-    const key = getEncryptionKey();
-    const [ivHex, authTagHex, encrypted] = encryptedToken.split(":");
-
-    if (!ivHex || !authTagHex || !encrypted) {
-      throw new Error("Invalid encrypted token format");
-    }
-
-    const decipher = createDecipheriv(
-      "aes-256-gcm",
-      new Uint8Array(key),
-      new Uint8Array(Buffer.from(ivHex, "hex")),
-    );
-    decipher.setAuthTag(new Uint8Array(Buffer.from(authTagHex, "hex")));
-
-    let decrypted = decipher.update(encrypted, "hex", "utf8");
-    decrypted += decipher.final("utf8");
-
-    return decrypted;
-  } catch (error) {
-    throw new Error("Token decryption failed");
-  }
 }
 
 /**
@@ -143,82 +70,6 @@ export async function findSessionByToken(token: string) {
     .limit(1);
 
   return foundSession;
-}
-
-/**
- * Store encrypted OAuth tokens
- */
-export async function storeOAuthTokens(
-  userId: string,
-  accountId: string,
-  providerId: string,
-  tokens: {
-    accessToken?: string;
-    refreshToken?: string;
-    idToken?: string;
-  },
-  expiresAt?: Date,
-  scope?: string,
-) {
-  const encryptedTokens = {
-    accessTokenEncrypted: tokens.accessToken
-      ? encryptToken(tokens.accessToken)
-      : null,
-    refreshTokenEncrypted: tokens.refreshToken
-      ? encryptToken(tokens.refreshToken)
-      : null,
-    idTokenEncrypted: tokens.idToken ? encryptToken(tokens.idToken) : null,
-  };
-
-  const [accountRecord] = await getDb()
-    .insert(account)
-    .values({
-      id: crypto.randomUUID(),
-      userId,
-      accountId,
-      providerId,
-      ...encryptedTokens,
-      accessTokenExpiresAt: expiresAt,
-      scope,
-    })
-    .onConflictDoUpdate({
-      target: [account.accountId, account.providerId],
-      set: {
-        ...encryptedTokens,
-        accessTokenExpiresAt: expiresAt,
-        scope,
-        updatedAt: new Date(),
-      },
-    })
-    .returning();
-
-  return accountRecord;
-}
-
-/**
- * Retrieve and decrypt OAuth tokens
- */
-export async function getOAuthTokens(userId: string, providerId: string) {
-  const [accountRecord] = await getDb()
-    .select()
-    .from(account)
-    .where(and(eq(account.userId, userId), eq(account.providerId, providerId)))
-    .limit(1);
-
-  if (!accountRecord) {
-    return null;
-  }
-
-  return {
-    ...accountRecord,
-    accessToken: accountRecord.accessToken
-      ? decryptToken(accountRecord.accessToken)
-      : null,
-    refreshToken: accountRecord.refreshToken
-      ? decryptToken(accountRecord.refreshToken)
-      : null,
-    idToken: accountRecord.idToken ? decryptToken(accountRecord.idToken) : null,
-  };
 }
 
 /**

@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { getDb } from "../db";
 import { user, session, account, verification } from "../db/better-auth-schema";
+import { encryptToken, decryptToken } from "../crypto";
 
 // Validate required environment variables
 const requiredEnvVars = {
@@ -37,6 +38,73 @@ export const auth = betterAuth({
       verification: verification,
     },
   }),
+
+  databaseHooks: {
+    account: {
+      create: {
+        before: async (account, context) => {
+          const withEncryptedTokens = { ...account };
+
+          // Encrypt access token if present
+          if (account.accessToken) {
+            const encryptedAccessToken = await encryptToken(
+              account.accessToken,
+            );
+            withEncryptedTokens.accessToken = encryptedAccessToken;
+          }
+
+          // Encrypt refresh token if present
+          if (account.refreshToken) {
+            const encryptedRefreshToken = await encryptToken(
+              account.refreshToken,
+            );
+            withEncryptedTokens.refreshToken = encryptedRefreshToken;
+          }
+
+          // Encrypt ID token if present
+          if (account.idToken) {
+            const encryptedIdToken = await encryptToken(account.idToken);
+            withEncryptedTokens.idToken = encryptedIdToken;
+          }
+
+          return {
+            data: withEncryptedTokens,
+          };
+        },
+      },
+      update: {
+        before: async (account, context) => {
+          const withEncryptedTokens = { ...account };
+
+          // Encrypt access token if present
+          if (account.accessToken) {
+            const encryptedAccessToken = await encryptToken(
+              account.accessToken,
+            );
+            withEncryptedTokens.accessToken = encryptedAccessToken;
+          }
+
+          // Encrypt refresh token if present
+          if (account.refreshToken) {
+            const encryptedRefreshToken = await encryptToken(
+              account.refreshToken,
+            );
+            withEncryptedTokens.refreshToken = encryptedRefreshToken;
+          }
+
+          // Encrypt ID token if present
+          if (account.idToken) {
+            const encryptedIdToken = await encryptToken(account.idToken);
+            withEncryptedTokens.idToken = encryptedIdToken;
+          }
+
+          return {
+            data: withEncryptedTokens,
+          };
+        },
+      },
+    },
+  },
 
   emailAndPassword: {
     enabled: false, // We only want GitHub OAuth
