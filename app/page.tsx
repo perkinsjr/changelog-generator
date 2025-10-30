@@ -12,10 +12,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { GitBranchIcon } from "lucide-react";
+import { GitBranchIcon, Mail, ArrowRight } from "lucide-react";
 import { RepositoryManagement } from "@/components/repository-management";
 import { NavigationHeader } from "@/components/navigation-header";
+import Link from "next/link";
 
 export default function Home() {
   const [changelog, setChangelog] = useState<string>("");
@@ -64,6 +66,35 @@ export default function Home() {
               />
             )}
           </div>
+
+          {/* Email Generator CTA for Authenticated Users */}
+          {isAuthenticated && changelog && !isGenerating && (
+            <Card className="mt-8 border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/20">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-start gap-3">
+                    <Mail className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                        Create an Email Announcement
+                      </h3>
+                      <p className="text-sm text-blue-800 dark:text-blue-200">
+                        Transform this changelog into a compelling email that
+                        highlights the most important features for your users.
+                      </p>
+                    </div>
+                  </div>
+                  <Link href="/email">
+                    <Button size="sm" className="flex-shrink-0">
+                      <Mail className="h-4 w-4 mr-2" />
+                      Generate Email
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Anonymous User Notice */}
           {!isAuthenticated && !isLoading && changelog && (

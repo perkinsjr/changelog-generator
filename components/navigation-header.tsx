@@ -5,8 +5,10 @@ import { useAuth } from "@/lib/auth/client";
 import { LoginButton } from "@/components/auth/login-button";
 import { UserProfile } from "@/components/auth/user-profile";
 import { Button } from "@/components/ui/button";
-import { MoonIcon, SunIcon } from "lucide-react";
+import { MoonIcon, SunIcon, Mail, GitBranch } from "lucide-react";
 import { useTheme } from "next-themes";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 interface NavigationHeaderProps {
   className?: string;
@@ -16,6 +18,7 @@ export function NavigationHeader({ className = "" }: NavigationHeaderProps) {
   const { isAuthenticated, isLoading } = useAuth();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
 
   // Prevent hydration mismatch with theme
   React.useEffect(() => {
@@ -32,8 +35,33 @@ export function NavigationHeader({ className = "" }: NavigationHeaderProps) {
       className={`border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 ${className}`}
     >
       <div className="container flex h-16 items-center justify-between">
-        {/* Empty space for alignment */}
-        <div></div>
+        {/* Navigation Links */}
+        <nav className="flex items-center gap-6">
+          <Button
+            variant={pathname === "/" ? "default" : "ghost"}
+            size="sm"
+            className="flex items-center gap-2"
+            asChild
+          >
+            <Link href="/">
+              <GitBranch className="h-4 w-4" />
+              Changelog
+            </Link>
+          </Button>
+          {isAuthenticated && (
+            <Button
+              variant={pathname === "/email" ? "default" : "ghost"}
+              size="sm"
+              className="flex items-center gap-2"
+              asChild
+            >
+              <Link href="/email">
+                <Mail className="h-4 w-4" />
+                Email Generator
+              </Link>
+            </Button>
+          )}
+        </nav>
 
         {/* Navigation Actions */}
         <div className="flex items-center gap-3">
